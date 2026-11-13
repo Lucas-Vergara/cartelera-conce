@@ -1,0 +1,70 @@
+name: Cartelera
+
+# Dos veces al día se recolecta y se publica. Instagram (Apify + Claude) solo en la pasada de la mañana, para
+# quedar dentro del crédito gratis de Apify. Un push a main solo vuelve a publicar la web con los datos del repo.
+on:
+  schedule:
+    - cron: "30 9 * * *" # 06:30 en Chile (verano) / 05:30 (invierno): todas las fuentes
+    - cron: "0 17 * * *" # 14:00 / 13:00: solo cadenas y carga manual
+  workflow_dispatch:
+    inputs:
+      fuentes:
+        description: "Fuentes separadas por espacio (vacío = todas)"
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths-ignore: ["public/cartelera.json", "datos/instagram.json", "*.md"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: cartelera
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      - name: Recolectar
+        if: github.event_name != 'push'
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FUENTES: ${{ github.event.schedule == '0 17 * * *' && 'cinemark cineplanet manual' || inputs.fuentes }}
+        run: |
+          npx playwright install --with-deps chromium
+          node recolector/index.js $FUENTES
+
+      - name: Guardar datos en el repo
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/cartelera.json datos/instagram.json
+          git diff --cached --quiet || git commit -m "Cartelera $(TZ=America/Santiago date '+%Y-%m-%d %H:%M')"
+          git push
+
+      - run: npm run typecheck
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

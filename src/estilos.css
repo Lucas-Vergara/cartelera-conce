@@ -1,0 +1,59 @@
+/* Solo lo propio de la cartelera: el resto viene de la biblioteca (línea panel2). */
+
+.panel2 .contenido { max-width: 1100px; }
+
+/* ---------- Controles: días a la izquierda, filtros a la derecha ---------- */
+.controles { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; justify-content: space-between; }
+.dias { display: flex; gap: var(--e-2); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; flex: 1 1 100%; min-width: 0; }
+.dias::-webkit-scrollbar { display: none; }
+.dias .chip-filtro { white-space: nowrap; flex: none; }
+.controles-derecha { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+
+/* ---------- Por película ---------- */
+.peliculas { list-style: none; margin: 0; padding: 0; display: grid; }
+.pelicula { display: grid; grid-template-columns: 76px 1fr; gap: var(--e-4); padding: var(--e-4) 0; border-top: 1px solid var(--borde); }
+.pelicula:first-child { border-top: 0; }
+.poster { width: 76px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radio-campo); background: var(--superficie-3); }
+.poster-vacio { display: grid; place-items: center; font-size: var(--texto-xl); font-weight: 650; color: var(--tinta-3); }
+.pelicula-cuerpo { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.pelicula h2 { font-size: var(--texto-md); font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+.ficha { font-size: var(--texto-sm); color: var(--tinta-3); }
+.pelicula-salas { display: grid; gap: var(--e-2); margin-top: var(--e-2); }
+
+/* Una fila: dónde y a qué hora */
+.fila-sala { display: grid; grid-template-columns: minmax(150px, 230px) 1fr; gap: var(--e-1) var(--e-3); align-items: baseline; }
+.fila-sala-nombre { font-size: var(--texto-sm); color: var(--tinta-2); display: grid; }
+.fila-sala-nombre b { color: var(--tinta); font-weight: 600; font-size: var(--texto-base); }
+
+.horarios { display: flex; flex-wrap: wrap; gap: 6px; }
+.horario {
+  display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border: 1px solid var(--borde); border-radius: 999px;
+  font-size: var(--texto-sm); color: var(--tinta); text-decoration: none; background: var(--superficie);
+  transition: border-color var(--dur-rapida), color var(--dur-rapida);
+}
+.horario b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.horario small { font-size: var(--texto-xs); color: var(--tinta-3); }
+a.horario:hover { border-color: var(--acento); color: var(--acento); text-decoration: none; }
+
+/* ---------- Por sala ---------- */
+.salas { display: grid; gap: var(--e-8); }
+.sala { display: grid; gap: var(--e-3); }
+.sala-cabecera { display: grid; gap: 2px; padding-bottom: var(--e-2); border-bottom: 1px solid var(--borde); }
+.sala-cabecera h2 { font-size: var(--texto-lg); font-weight: 650; letter-spacing: -0.02em; margin: 0; }
+.sala-cabecera span { font-size: var(--texto-sm); }
+.sala .fila-sala { grid-template-columns: minmax(180px, 320px) 1fr; }
+
+/* ---------- Fuentes ---------- */
+.fuentes { margin-top: var(--e-8); padding-top: var(--e-4); border-top: 1px solid var(--borde); display: grid; gap: var(--e-2); font-size: var(--texto-sm); }
+.fuentes h2 { font-size: var(--texto-base); font-weight: 600; margin: 0; }
+.fuentes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fuentes li { display: flex; flex-wrap: wrap; gap: 4px var(--e-3); }
+.fuentes li > span:first-child { min-width: 230px; color: var(--tinta-2); }
+.estado-fuente.error { color: var(--critico); display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .pelicula { grid-template-columns: 56px 1fr; gap: var(--e-3); }
+  .poster { width: 56px; }
+  .fila-sala, .sala .fila-sala { grid-template-columns: 1fr; }
+  .fuentes li > span:first-child { min-width: 0; flex-basis: 100%; }
+}
