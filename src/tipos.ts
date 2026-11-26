@@ -10,6 +10,8 @@ export interface Sala {
   comuna: string;
   url?: string;
   instagram?: string;
+  fuentePropia?: boolean;
+  diaHabitual?: number;
 }
 
 export interface Pelicula {
@@ -34,7 +36,23 @@ export interface Funcion {
   sala_numero?: string | null;
   lugar?: string | null;
   precio?: string | null;
+  /** Sin cupos (Microcine Molina lo dice en su web). */
+  agotada?: boolean;
   compra: string | null;
+  fuente: string;
+}
+
+/** Un post con fecha en que no se pudo leer qué película es (p. ej. el título solo está en el afiche). */
+export interface Aviso {
+  sala: string;
+  titulo: string;
+  /** "YYYY-MM-DD" */
+  fechas: string[];
+  hora: string | null;
+  lugar: string | null;
+  precio: string | null;
+  url: string;
+  publicado: string;
   fuente: string;
 }
 
@@ -51,5 +69,6 @@ export interface Cartelera {
   salas: Sala[];
   peliculas: Record<string, Pelicula>;
   funciones: Funcion[];
+  avisos?: Aviso[];
   fuentes: EstadoFuente[];
 }

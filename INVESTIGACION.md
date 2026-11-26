@@ -36,7 +36,7 @@ No hay Cinépolis, Muvix ni Cine Star en el Gran Concepción.
 
 | Espacio | Lugar | Frecuencia | Fuente | Formato de la publicación |
 |---|---|---|---|---|
-| Microcine Molina | Orompello 104, Concepción (12 butacas) | Mié–dom, 18:00 y 20:30 | IG `@microcinemolina` (~6.200 seg.) | Post semanal «La cartelera de esta semana»: la **leyenda** trae días, hora, título, año y duración en texto. Aporte voluntario. Ya funcionando (ciclo de cine iraní en nov). |
+| Microcine Molina | Orompello 104, Concepción (12 butacas) | Mié–dom, 18:00 y 20:30 | **Web `microcinemolina.cl/cartelera`** (desde nov-2026, con reservas y cupos; es la fuente que se usa) e IG `@microcinemolina` (~6.200 seg.) | Post semanal «La cartelera de esta semana»: la **leyenda** trae días, hora, título, año y duración en texto. Aporte voluntario. Ya funcionando (ciclo de cine iraní en nov). |
 | CineSecreto | Icebar, Ongolmo 1305, Concepción | Lunes 20:00 (horario de verano; antes 19:30) | IG `@cinesecreto_ccp` (~5.900 seg.) | Un post por función; leyenda con título, año, fecha, hora y lugar. |
 | Lunes Cinematográficos (Teatro UdeC) | O'Higgins 660, Concepción | Lunes 19:00, ciclos mensuales | noticias.udec.cl (etiqueta «Lunes Cinematográficos»), IG `@festivalbiobiocine`, venta Ticketmaster | Una nota por ciclo con títulos y fechas. teatroudec.cl solo vende entradas y tiene enlaces spam de apuestas: no usar. |
 | Cineclub FI UdeC | Facultad de Ingeniería UdeC + Teatro UdeC | Ciclos; gratis con cineforo | IG `@cineclubfiudec` (~7.300 seg.) | Afiches; también «Conversatorios de cine» en Librería Marta Brunet. |
@@ -59,12 +59,25 @@ No hay Cinépolis, Muvix ni Cine Star en el Gran Concepción.
 Referencias: Butaca Conce «10 cineclubs imperdibles» (butacaconce.periodismoudec.cl/10-cineclub-en-concepcion/),
 Diario Concepción 21-jul-2026 (cineclubes penquistas), Radio UdeC 20-oct-2026 (Microcine Molina).
 
+## Revisión con posts reales (25-nov-2026, Apify)
+
+39 posts de los últimos 30 días de las 7 cuentas, por US$0,10:
+
+- **El texto basta casi siempre**: Fiudec, Videodromo, CineSecreto, Corcudec y Molina ponen película, fecha y hora en
+  la leyenda. Truffaut puso el título solo en el afiche. Con reglas (sin IA) salen todas las funciones anunciadas en
+  texto; lo que no se puede leer queda como aviso con enlace al post.
+- **Posts colaborativos**: aparecen en el perfil de una cuenta con otro autor (Corcudec, Bitácora de Cine,
+  El Desconcierto en el de @festivalbiobiocine). La sala se asigna por el perfil donde apareció (`inputUrl`).
+- **@corcudec** anuncia cada función de los Lunes Cinematográficos (título, año, fecha, hora, Teatro UdeC): se suma.
+- **Cine Arte Windsor**: sin posts en 30 días.
+- Microcine Molina abrió su web con la cartelera y reservas en línea: se lee de ahí y no de Instagram.
+
 ## Conclusiones para el diseño
 
 1. **Tres tipos de fuente**: cadenas (scraper con navegador, diario), Instagram (texto de la leyenda +
    imagen, semanal) y notas/webs de ciclos y festivales (manual o semiautomático).
-2. **Instagram**: Molina, CineSecreto y Windsor ponen todo en la leyenda → un LLM puede extraer las
-   funciones del texto. Videodromo, Truffaut y Fiudec ponen los datos en el afiche → hace falta visión.
+2. **Instagram**: casi todos ponen los datos en la leyenda (ver la revisión con posts reales) → se leen con reglas,
+   sin IA, para que el gasto sea cero. Lo que va solo en el afiche queda como aviso con enlace al post.
    Leer IG automáticamente: Business Discovery API de Meta (requiere cuenta IG de empresa propia) o carga
    asistida (pegar el link del post y extraer). Scraping directo choca con los términos de Meta.
 3. **Revisión humana** para lo extraído de Instagram antes de publicarlo (las fechas vienen como «lunes 9»).

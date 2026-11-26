@@ -41,7 +41,9 @@ export const SALAS = [
     tipo: "independiente",
     direccion: "Orompello 104",
     comuna: "Concepción",
+    url: "https://www.microcinemolina.cl/cartelera",
     instagram: "microcinemolina",
+    fuentePropia: true, // su web trae la cartelera completa: no se lee su Instagram
   },
   {
     id: "cinesecreto",
@@ -50,6 +52,7 @@ export const SALAS = [
     direccion: "Icebar, Ongolmo 1305",
     comuna: "Concepción",
     instagram: "cinesecreto_ccp",
+    diaHabitual: 1, // lunes: algunos posts solo dicen la hora
   },
   {
     id: "cineclub-fiudec",
@@ -87,9 +90,11 @@ export const SALAS = [
 
 /**
  * Cuentas de Instagram que se leen con Apify. `sala` es el espacio al que se asignan sus funciones salvo que el
- * post diga que es en el Teatro UdeC (BioBioCine y Fiudec programan ahí los Lunes Cinematográficos).
+ * post diga que es en el Teatro UdeC (Corcudec, BioBioCine y Fiudec anuncian ahí los Lunes Cinematográficos).
+ * Apify cobra por post: cada cuenta suma ~US$0,3 al mes si publica a diario, nada si no publica.
  */
 export const CUENTAS_INSTAGRAM = [
-  ...SALAS.filter((s) => s.instagram).map((s) => ({ usuario: s.instagram, sala: s.id })),
+  ...SALAS.filter((s) => s.instagram && !s.fuentePropia).map((s) => ({ usuario: s.instagram, sala: s.id })),
+  { usuario: "corcudec", sala: "teatro-udec" },
   { usuario: "festivalbiobiocine", sala: "teatro-udec" },
 ];

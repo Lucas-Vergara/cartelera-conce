@@ -1,91 +1,73 @@
 /**
- * Instagram: Apify trae los posts recientes de las cuentas de `CUENTAS_INSTAGRAM` y Claude saca las funciones
- * del texto y del afiche. Lo extraído de cada post se guarda en `datos/instagram.json` para no pagar dos veces
- * por el mismo post (no es historial: se borra lo de más de 30 días).
+ * Instagram: Apify trae los posts nuevos de las cuentas de `CUENTAS_INSTAGRAM` y `leerPost` saca las funciones del
+ * texto con reglas, sin IA (gasto cero). Los posts se guardan 30 días en `datos/instagram.json`: así a Apify solo
+ * se le piden los de los últimos días (cobra por post) y un post que anuncia algo para dentro de tres semanas sigue
+ * contando. Cada ejecución vuelve a leer todos los guardados, así que una mejora del lector vale también para ellos.
  *
- * Variables: APIFY_TOKEN y ANTHROPIC_API_KEY. Sin APIFY_TOKEN la fuente queda "sin configurar".
+ * Variable: APIFY_TOKEN. Sin ella la fuente queda "sin configurar". El plan gratis de Apify corta al gastar sus
+ * US$5 del mes, no cobra.
  */
 import { readFile, writeFile } from "node:fs/promises";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { ApifyClient } from "apify-client";
-import { z } from "zod";
-import { CUENTAS_INSTAGRAM } from "../salas.js";
+import { leerPost } from "../leer-post.js";
+import { CUENTAS_INSTAGRAM, SALAS } from "../salas.js";
 import { clavePelicula, hoyChile, tituloLegible } from "../util.js";
 
 const CACHE = new URL("../../datos/instagram.json", import.meta.url);
-const DIAS_POSTS = 10; // posts más viejos casi nunca anuncian funciones futuras
+const DIAS_NUEVOS = 4; // corre a diario: 4 días cubren una o dos ejecuciones fallidas
 const POSTS_POR_CUENTA = 6;
 const DIAS_CACHE = 30;
 
-const Extraccion = z.object({
-  funciones: z.array(
-    z.object({
-      titulo: z.string(),
-      anio: z.number().int().nullable(),
-      director: z.string().nullable(),
-      fecha: z.string().describe("YYYY-MM-DD"),
-      hora: z.string().describe("HH:MM, 24 horas"),
-      lugar: z.string().nullable().describe("Nombre y dirección del lugar si el post lo dice"),
-      precio: z.string().nullable().describe('Tal como lo dice el post: "Gratis", "Aporte voluntario", "$3.000"'),
-      duracionMin: z.number().int().nullable(),
-    }),
-  ),
-});
-
-const SISTEMA = `Extraes funciones de cine de publicaciones de Instagram de salas y cineclubes del Gran Concepción, Chile.
-Devuelve solo proyecciones concretas con película, fecha y hora. Una línea como "miércoles 11, viernes 13 y sábado 14,
-18:00 Salaam Cinema" son tres funciones. Si un post repite la misma película en dos horarios, son dos funciones.
-Calcula la fecha completa a partir de la fecha de publicación del post: "lunes 9" es el lunes 9 más próximo a esa fecha.
-Ignora concursos, talleres, charlas sin película, avisos de ciclos sin fecha y funciones ya pasadas respecto de la
-publicación. Si no hay funciones, devuelve una lista vacía. No inventes datos: deja en null lo que el post no dice.`;
-
 export async function recolectar() {
   if (!process.env.APIFY_TOKEN) return { estado: "sin-configurar", mensaje: "Falta APIFY_TOKEN", peliculas: {}, funciones: [] };
-
-  const posts = await traerPosts();
   const cache = await leerCache();
-  const claude = new Anthropic();
-  const errores = [];
-
-  for (const post of posts) {
-    if (cache[post.shortCode]) continue;
-    try {
-      cache[post.shortCode] = { publicado: post.timestamp, usuario: post.ownerUsername, url: post.url, funciones: await extraer(claude, post) };
-    } catch (e) {
-      errores.push(`${post.url}: ${e.message}`);
-    }
-  }
+  for (const post of await traerPosts()) cache[post.shortCode] = post.guardado;
   await guardarCache(cache);
+  return { estado: "ok", mensaje: null, ...leerGuardados(cache) };
+}
 
+/** Funciones y avisos de los posts guardados. Función pura (probada en test/). */
+export function leerGuardados(cache) {
+  const salaDe = new Map(CUENTAS_INSTAGRAM.map((c) => [c.usuario, c.sala]));
+  const salas = new Map(SALAS.map((s) => [s.id, s]));
   const peliculas = {};
   const funciones = [];
-  const salaDe = new Map(CUENTAS_INSTAGRAM.map((c) => [c.usuario, c.sala]));
+  const avisos = [];
+
   for (const p of Object.values(cache)) {
-    for (const f of p.funciones) {
+    const salaCuenta = salaDe.get(p.cuenta) ?? salaDe.get(p.autor);
+    if (!salaCuenta) continue;
+    const s = salas.get(salaCuenta);
+    const { funciones: fs, aviso } = leerPost({ texto: p.texto, publicado: hoyChile(new Date(p.publicado)), diaHabitual: s?.diaHabitual ?? null, direccionSala: s?.direccion ?? null });
+    const enTeatroUdec = (lugar) => /teatro\s+(udec|universidad de concepci)/i.test(lugar ?? "");
+
+    for (const f of fs) {
       const id = clavePelicula(f.titulo);
-      if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(f.fecha) || !/^\d{2}:\d{2}$/.test(f.hora)) continue;
-      peliculas[id] ??= { titulo: tituloLegible(f.titulo), anio: f.anio, director: f.director, duracionMin: f.duracionMin };
-      const enTeatroUdec = /teatro\s+(udec|universidad de concepci)/i.test(f.lugar ?? "");
+      if (!id) continue;
+      const titulo = tituloLegible(f.titulo);
+      peliculas[id] ??= { titulo, anio: f.anio, director: f.director };
+      peliculas[id].anio ??= f.anio;
+      peliculas[id].director ??= f.director;
       funciones.push({
-        sala: enTeatroUdec ? "teatro-udec" : salaDe.get(p.usuario) ?? p.usuario,
+        sala: enTeatroUdec(f.lugar) ? "teatro-udec" : salaCuenta,
         pelicula: id,
         inicio: `${f.fecha}T${f.hora}`,
         formato: null,
         idioma: null,
-        lugar: enTeatroUdec ? null : f.lugar,
+        lugar: enTeatroUdec(f.lugar) ? null : f.lugar,
         precio: f.precio,
         compra: p.url,
         fuente: "instagram",
       });
     }
+    if (aviso) avisos.push({ sala: enTeatroUdec(aviso.lugar) ? "teatro-udec" : salaCuenta, ...aviso, lugar: enTeatroUdec(aviso.lugar) ? null : aviso.lugar, url: p.url, publicado: p.publicado });
   }
-  return {
-    estado: errores.length ? "parcial" : "ok",
-    mensaje: errores.length ? `${errores.length} post(s) sin leer: ${errores.slice(0, 3).join(" · ")}` : null,
-    peliculas,
-    funciones: dedup(funciones),
-  };
+
+  const unicas = dedup(funciones);
+  // un aviso sobra si otro post de la misma sala ya dio funciones para esas fechas
+  const conFunciones = new Set(unicas.map((f) => `${f.sala}|${f.inicio.slice(0, 10)}`));
+  const avisosUtiles = avisos.filter((a) => !a.fechas.every((d) => conFunciones.has(`${a.sala}|${d}`)));
+  return { peliculas, funciones: unicas, avisos: avisosUtiles };
 }
 
 async function traerPosts() {
@@ -93,45 +75,21 @@ async function traerPosts() {
   const run = await apify.actor("apify/instagram-post-scraper").call({
     username: CUENTAS_INSTAGRAM.map((c) => c.usuario),
     resultsLimit: POSTS_POR_CUENTA,
-    onlyPostsNewerThan: `${DIAS_POSTS} days`,
+    onlyPostsNewerThan: `${DIAS_NUEVOS} days`,
     skipPinnedPosts: false,
   });
+  if (run.status !== "SUCCEEDED") throw new Error(`Apify terminó en ${run.status}`);
   const { items } = await apify.dataset(run.defaultDatasetId).listItems();
-  return items.filter((p) => p.shortCode && (p.caption || p.displayUrl));
+  return items
+    .filter((p) => p.shortCode && p.caption)
+    .map((p) => ({
+      shortCode: p.shortCode,
+      // la cuenta en cuyo perfil apareció (en un post colaborativo, el autor puede ser otra)
+      guardado: { cuenta: cuentaDe(p.inputUrl) ?? p.ownerUsername, autor: p.ownerUsername, publicado: p.timestamp, url: p.url, texto: p.caption },
+    }));
 }
 
-async function extraer(claude, post) {
-  const contenido = [];
-  const imagen = await imagenBase64(post.displayUrl);
-  if (imagen) contenido.push({ type: "image", source: { type: "base64", media_type: imagen.tipo, data: imagen.datos } });
-  contenido.push({
-    type: "text",
-    text: `Cuenta: @${post.ownerUsername}\nPublicado: ${post.timestamp} (hoy es ${hoyChile()})\n\nTexto del post:\n${post.caption ?? "(sin texto)"}`,
-  });
-
-  const r = await claude.messages.parse({
-    model: "claude-opus-5-5",
-    max_tokens: 16000,
-    output_config: { effort: "low", format: zodOutputFormat(Extraccion) },
-    system: SISTEMA,
-    messages: [{ role: "user", content: contenido }],
-  });
-  if (r.stop_reason === "refusal") throw new Error("Claude rechazó el post");
-  if (!r.parsed_output) throw new Error(`respuesta sin JSON válido (${r.stop_reason})`);
-  return r.parsed_output.funciones;
-}
-
-async function imagenBase64(url) {
-  if (!url) return null;
-  try {
-    const r = await fetch(url);
-    const tipo = r.headers.get("content-type")?.split(";")[0];
-    if (!r.ok || !["image/jpeg", "image/png", "image/webp"].includes(tipo)) return null;
-    return { tipo, datos: Buffer.from(await r.arrayBuffer()).toString("base64") };
-  } catch {
-    return null; // sin imagen, Claude lee solo el texto
-  }
-}
+const cuentaDe = (url) => /instagram\.com\/([^/?#]+)/.exec(url ?? "")?.[1]?.toLowerCase() ?? null;
 
 async function leerCache() {
   try {
@@ -143,7 +101,11 @@ async function leerCache() {
 
 async function guardarCache(cache) {
   const limite = new Date(Date.now() - DIAS_CACHE * 86_400_000).toISOString();
-  const vigente = Object.fromEntries(Object.entries(cache).filter(([, p]) => (p.publicado ?? "") >= limite).sort(([a], [b]) => a.localeCompare(b)));
+  const vigente = Object.fromEntries(
+    Object.entries(cache)
+      .filter(([, p]) => p.texto != null && (p.publicado ?? "") >= limite)
+      .sort(([, a], [, b]) => a.publicado.localeCompare(b.publicado)),
+  );
   await writeFile(CACHE, `${JSON.stringify(vigente, null, 1)}\n`);
 }
 

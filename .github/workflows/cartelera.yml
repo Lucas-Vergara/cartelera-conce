@@ -1,11 +1,11 @@
 name: Cartelera
 
-# Dos veces al día se recolecta y se publica. Instagram (Apify + Claude) solo en la pasada de la mañana, para
-# quedar dentro del crédito gratis de Apify. Un push a main solo vuelve a publicar la web con los datos del repo.
+# Dos veces al día se recolecta y se publica. Instagram (Apify) solo en la pasada de la mañana, para quedar dentro
+# del crédito gratis de Apify (el plan gratis corta al gastarlo, no cobra). Un push a main solo vuelve a publicar la web con los datos del repo.
 on:
   schedule:
     - cron: "30 9 * * *" # 06:30 en Chile (verano) / 05:30 (invierno): todas las fuentes
-    - cron: "0 17 * * *" # 14:00 / 13:00: solo cadenas y carga manual
+    - cron: "0 17 * * *" # 14:00 / 13:00: todo menos Instagram
   workflow_dispatch:
     inputs:
       fuentes:
@@ -45,8 +45,7 @@ jobs:
         if: github.event_name != 'push'
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          FUENTES: ${{ github.event.schedule == '0 17 * * *' && 'cinemark cineplanet manual' || inputs.fuentes }}
+          FUENTES: ${{ github.event.schedule == '0 17 * * *' && 'cinemark cineplanet molina manual' || inputs.fuentes }}
         run: |
           npx playwright install --with-deps chromium
           node recolector/index.js $FUENTES

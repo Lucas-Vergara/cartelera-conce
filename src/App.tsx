@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BotonTema, CreditoEstilos, Frescura, Segmentado, Vacio } from "@lucas-vergara/estilos";
-import type { Cartelera, EstadoFuente, Funcion, Pelicula, Sala } from "./tipos";
+import type { Aviso, Cartelera, EstadoFuente, Funcion, Pelicula, Sala } from "./tipos";
 
 type Vista = "pelicula" | "sala";
 type Filtro = "todas" | "cadena" | "otras";
@@ -8,6 +8,7 @@ type Filtro = "todas" | "cadena" | "otras";
 const NOMBRE_FUENTE: Record<string, string> = {
   cinemark: "Cinemark",
   cineplanet: "Cineplanet",
+  molina: "Microcine Molina (su web)",
   instagram: "Instagram de salas y cineclubes",
   manual: "Cargadas a mano",
 };
@@ -122,6 +123,8 @@ export function App() {
       ) : (
         <PorSala funciones={delDia} peliculas={datos.peliculas} salas={salas} />
       )}
+
+      {filtro !== "cadena" && <Avisos avisos={(datos.avisos ?? []).filter((a) => a.fechas.some((d) => d >= hoy))} salas={salas} hoy={hoy} />}
 
       <Fuentes fuentes={datos.fuentes} />
     </Marco>
@@ -246,7 +249,7 @@ function Horarios({ funciones }: { funciones: Funcion[] }) {
     <span className="horarios">
       {funciones.map((f) => {
         const formato = f.formato?.replace(/^2D\s+/, "");
-        const detalle = [formato && formato !== "2D" ? formato : null, f.idioma === "Subtitulada" ? "Sub" : f.idioma === "Doblada" ? "Dob" : null, f.precio]
+        const detalle = [f.agotada ? "Agotada" : null, formato && formato !== "2D" ? formato : null, f.idioma === "Subtitulada" ? "Sub" : f.idioma === "Doblada" ? "Dob" : null, f.agotada ? null : f.precio]
           .filter(Boolean)
           .join(" · ");
         const contenido = (
@@ -255,19 +258,54 @@ function Horarios({ funciones }: { funciones: Funcion[] }) {
             {detalle && <small>{detalle}</small>}
           </>
         );
-        const titulo = [f.formato, f.idioma, f.sala_numero && `Sala ${f.sala_numero}`, f.precio].filter(Boolean).join(" · ");
+        const titulo = [f.agotada && "Sin cupos", f.formato, f.idioma, f.sala_numero && `Sala ${f.sala_numero}`, f.precio].filter(Boolean).join(" · ");
+        const clase = f.agotada ? "horario agotado" : "horario";
         const nombre = [f.inicio.slice(11), titulo, f.compra && "abre la compra o el post"].filter(Boolean).join(", ");
         return f.compra ? (
-          <a key={f.inicio + f.formato} className="horario" href={f.compra} target="_blank" rel="noreferrer" title={titulo || undefined} aria-label={nombre}>
+          <a key={f.inicio + f.formato} className={clase} href={f.compra} target="_blank" rel="noreferrer" title={titulo || undefined} aria-label={nombre}>
             {contenido}
           </a>
         ) : (
-          <span key={f.inicio + f.formato} className="horario" title={titulo || undefined}>
+          <span key={f.inicio + f.formato} className={clase} title={titulo || undefined}>
             {contenido}
           </span>
         );
       })}
     </span>
+  );
+}
+
+function Avisos({ avisos, salas, hoy }: { avisos: Aviso[]; salas: Map<string, Sala>; hoy: string }) {
+  if (!avisos.length) return null;
+  return (
+    <section className="avisos">
+      <header>
+        <h2>También anunciado en Instagram</h2>
+        <p className="nota">Posts con fecha en que no se pudo leer la película, a menudo porque va solo en el afiche. Revisa el post.</p>
+      </header>
+      <ul>
+        {avisos.map((a) => {
+          const proxima = a.fechas.find((d) => d >= hoy) ?? a.fechas[0];
+          const otras = a.fechas.filter((d) => d > proxima).length;
+          return (
+            <li key={a.url}>
+              <span className="aviso-fecha">
+                <b>{etiquetaDia(proxima, hoy)}</b>
+                {a.hora && <span>{a.hora}</span>}
+                {otras > 0 && <small>+{otras} {otras === 1 ? "día" : "días"}</small>}
+              </span>
+              <span className="aviso-cuerpo">
+                <span className="aviso-titulo">{a.titulo}</span>
+                <span className="muted">{[salas.get(a.sala)?.nombre ?? a.sala, a.lugar, a.precio].filter(Boolean).join(" · ")}</span>
+              </span>
+              <a className="aviso-enlace" href={a.url} target="_blank" rel="noreferrer">
+                Ver post
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -295,7 +333,7 @@ function Fuentes({ fuentes }: { fuentes: EstadoFuente[] }) {
         ))}
       </ul>
       <p className="muted">
-        Los horarios de Instagram los lee una IA a partir de cada publicación: confírmalos en el post antes de ir. Código en{" "}
+        Los horarios de Instagram se leen solos del texto de cada post: confírmalos en el post antes de ir. Código en{" "}
         <a href="https://github.com/Lucas-Vergara/cartelera-conce">GitHub</a>.
       </p>
       <CreditoEstilos />

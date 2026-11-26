@@ -43,6 +43,23 @@ a.horario:hover { border-color: var(--acento); color: var(--acento); text-decora
 .sala-cabecera span { font-size: var(--texto-sm); }
 .sala .fila-sala { grid-template-columns: minmax(180px, 320px) 1fr; }
 
+.horario.agotado { color: var(--tinta-3); background: var(--superficie-2); }
+.horario.agotado b { text-decoration: line-through; font-weight: 500; }
+
+/* ---------- Avisos de Instagram sin película leída ---------- */
+.avisos { margin-top: var(--e-8); display: grid; gap: var(--e-3); }
+.avisos header { display: grid; gap: 2px; padding-bottom: var(--e-2); border-bottom: 1px solid var(--borde); }
+.avisos h2 { font-size: var(--texto-lg); font-weight: 650; letter-spacing: -0.02em; margin: 0; }
+.avisos .nota { font-size: var(--texto-sm); color: var(--tinta-3); margin: 0; }
+.avisos ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--e-3); }
+.avisos li { display: grid; grid-template-columns: 120px 1fr auto; gap: var(--e-3); align-items: baseline; }
+.aviso-fecha { display: flex; flex-wrap: wrap; gap: 2px 6px; font-size: var(--texto-sm); font-variant-numeric: tabular-nums; }
+.aviso-fecha b { font-weight: 600; }
+.aviso-fecha small { color: var(--tinta-3); font-size: var(--texto-xs); flex-basis: 100%; }
+.aviso-cuerpo { display: grid; gap: 2px; min-width: 0; font-size: var(--texto-sm); }
+.aviso-titulo { color: var(--tinta); font-size: var(--texto-base); text-wrap: pretty; }
+.aviso-enlace { font-size: var(--texto-sm); white-space: nowrap; }
+
 /* ---------- Fuentes ---------- */
 .fuentes { margin-top: var(--e-8); padding-top: var(--e-4); border-top: 1px solid var(--borde); display: grid; gap: var(--e-2); font-size: var(--texto-sm); }
 .fuentes h2 { font-size: var(--texto-base); font-weight: 600; margin: 0; }
@@ -56,4 +73,6 @@ a.horario:hover { border-color: var(--acento); color: var(--acento); text-decora
   .poster { width: 56px; }
   .fila-sala, .sala .fila-sala { grid-template-columns: 1fr; }
   .fuentes li > span:first-child { min-width: 0; flex-basis: 100%; }
+  .avisos li { grid-template-columns: 1fr auto; }
+  .aviso-cuerpo { grid-column: 1 / -1; grid-row: 2; }
 }

@@ -11,10 +11,11 @@ import * as cinemark from "./fuentes/cinemark.js";
 import * as cineplanet from "./fuentes/cineplanet.js";
 import * as instagram from "./fuentes/instagram.js";
 import * as manual from "./fuentes/manual.js";
+import * as molina from "./fuentes/molina.js";
 import { SALAS } from "./salas.js";
 import { ahoraChile, vigentes } from "./util.js";
 
-const FUENTES = { cinemark, cineplanet, instagram, manual };
+const FUENTES = { cinemark, cineplanet, molina, instagram, manual };
 const SALIDA = new URL("../public/cartelera.json", import.meta.url);
 
 const pedidas = process.argv.slice(2);
@@ -24,12 +25,14 @@ const generado = new Date().toISOString();
 
 const peliculas = {};
 const funciones = [];
+const avisos = [];
 const estados = [];
 
 for (const [id, fuente] of Object.entries(FUENTES)) {
   const previa = anterior.fuentes?.find((f) => f.id === id);
   const copiarAnterior = () => {
     funciones.push(...(anterior.funciones ?? []).filter((f) => f.fuente === id));
+    avisos.push(...(anterior.avisos ?? []).filter((a) => a.fuente === id));
     for (const f of anterior.funciones ?? []) if (f.fuente === id && anterior.peliculas?.[f.pelicula]) peliculas[f.pelicula] ??= anterior.peliculas[f.pelicula];
   };
   if (pedidas.length && !pedidas.includes(id)) {
@@ -46,6 +49,7 @@ for (const [id, fuente] of Object.entries(FUENTES)) {
     }
     for (const [k, p] of Object.entries(r.peliculas)) peliculas[k] = { ...p, ...peliculas[k], ...soloConDatos(p) };
     funciones.push(...r.funciones);
+    avisos.push(...(r.avisos ?? []).map((a) => ({ ...a, fuente: id })));
     estados.push({ id, estado: r.estado ?? "ok", mensaje: r.mensaje ?? null, actualizado: generado, funciones: r.funciones.length });
     console.log(`✓ ${id}: ${r.funciones.length} funciones en ${((Date.now() - inicio) / 1000).toFixed(1)} s`);
   } catch (e) {
@@ -62,6 +66,7 @@ const cartelera = {
   salas: SALAS,
   peliculas: Object.fromEntries(Object.entries(peliculas).filter(([k]) => usadas.has(k)).sort(([a], [b]) => a.localeCompare(b))),
   funciones: futuras,
+  avisos: avisos.filter((a) => a.fechas.some((d) => d >= ahora.slice(0, 10))).sort((a, b) => proxima(a, ahora).localeCompare(proxima(b, ahora))),
   fuentes: estados,
 };
 await writeFile(SALIDA, `${JSON.stringify(cartelera)}\n`);
@@ -74,6 +79,11 @@ async function leerAnterior() {
   } catch {
     return {};
   }
+}
+
+/** La próxima fecha de un aviso que aún no pasa. */
+function proxima(aviso, ahora) {
+  return aviso.fechas.find((d) => d >= ahora.slice(0, 10)) ?? "";
 }
 
 /** Los campos con valor de una película, para que una fuente con más datos complete a otra. */
