@@ -35,6 +35,42 @@
 .horario small { font-size: var(--texto-xs); color: var(--tinta-3); }
 a.horario:hover { border-color: var(--acento); color: var(--acento); text-decoration: none; }
 
+.pelicula h2 a, .fila-sala-nombre b a { color: inherit; }
+.pelicula h2 a:hover, .fila-sala-nombre b a:hover { color: var(--acento); }
+
+/* ---------- Películas: grilla de afiches ---------- */
+.grilla-peliculas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--e-8) var(--e-5); }
+.tarjeta-pelicula { display: grid; gap: var(--e-3); align-content: start; color: inherit; text-decoration: none; }
+.tarjeta-pelicula:hover { text-decoration: none; }
+.tarjeta-pelicula .poster { width: 100%; transition: transform var(--dur-rapida), box-shadow var(--dur-rapida); }
+.tarjeta-pelicula .poster-vacio { font-size: 2.5rem; }
+.tarjeta-pelicula:hover .poster { transform: translateY(-2px); box-shadow: 0 6px 18px rgb(0 0 0 / 0.12); }
+.tarjeta-pelicula:hover h2 { color: var(--acento); }
+.tarjeta-pelicula:focus-visible { outline: 2px solid var(--acento); outline-offset: 4px; border-radius: var(--radio-campo); }
+.tarjeta-pelicula-cuerpo { display: grid; gap: 3px; justify-items: start; }
+.tarjeta-pelicula h2 { font-size: var(--texto-base); font-weight: 650; letter-spacing: -0.01em; line-height: 1.3; margin: 0; text-wrap: balance; transition: color var(--dur-rapida); }
+.tarjeta-pelicula .proxima { font-size: var(--texto-sm); color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.tarjeta-pelicula .proxima b { font-weight: 600; color: var(--tinta); }
+.tarjeta-pelicula .muted { font-size: var(--texto-sm); }
+.tarjeta-pelicula .chip { margin-top: 2px; }
+.controles .buscador { flex: 1 1 260px; max-width: 360px; }
+
+/* ---------- Una película ---------- */
+.cabecera-pelicula { display: grid; grid-template-columns: 176px 1fr; grid-template-rows: auto 1fr; gap: var(--e-2) var(--e-6); align-items: start; }
+.cabecera-pelicula .poster { width: 176px; grid-row: 1 / span 2; }
+.cabecera-pelicula-sinopsis { grid-column: 2; display: grid; gap: var(--e-2); justify-items: start; }
+.cabecera-pelicula .poster-vacio { font-size: 3rem; }
+.cabecera-pelicula-texto { display: grid; gap: var(--e-2); justify-items: start; }
+.cabecera-pelicula h1 { margin: 0; text-wrap: balance; }
+.cabecera-pelicula .ficha { font-size: var(--texto-base); }
+.cabecera-pelicula .nota { margin: 0; }
+.sinopsis { max-width: 68ch; margin: 0; color: var(--tinta-2); text-wrap: pretty; }
+.dias-pelicula { display: grid; }
+.dia-pelicula { display: grid; grid-template-columns: 230px 1fr; gap: var(--e-2) var(--e-4); padding: var(--e-4) 0; border-top: 1px solid var(--borde); }
+.dia-pelicula h2 { font-size: var(--texto-base); font-weight: 650; margin: 0; }
+.dia-pelicula h2 .muted { font-weight: 400; }
+.dia-pelicula-salas { display: grid; gap: var(--e-3); }
+
 /* ---------- Por sala ---------- */
 .salas { display: grid; gap: var(--e-8); }
 .sala { display: grid; gap: var(--e-3); }
@@ -74,5 +110,12 @@ a.horario:hover { border-color: var(--acento); color: var(--acento); text-decora
   .fila-sala, .sala .fila-sala { grid-template-columns: 1fr; }
   .fuentes li > span:first-child { min-width: 0; flex-basis: 100%; }
   .avisos li { grid-template-columns: 1fr auto; }
+  .grilla-peliculas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-6) var(--e-3); }
+  .cabecera-pelicula { grid-template-columns: 96px 1fr; gap: var(--e-4); }
+  .cabecera-pelicula { grid-template-rows: auto; row-gap: var(--e-4); }
+  .cabecera-pelicula .poster { width: 96px; grid-row: auto; }
+  .cabecera-pelicula-sinopsis { grid-column: 1 / -1; }
+  .dia-pelicula { grid-template-columns: 1fr; }
+  .controles .buscador { max-width: none; }
   .aviso-cuerpo { grid-column: 1 / -1; grid-row: 2; }
 }
